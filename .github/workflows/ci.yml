@@ -1,0 +1,96 @@
+name: CI
+
+on: [push, pull_request]
+
+# Repository ini berisi dua sistem: toko/ (Lab 09-12) dan proyek-kelompok/ (reservasi tiket kereta).
+# Tiap sistem diuji di job-nya sendiri pada mesin bersih milik GitHub (berjalan paralel).
+jobs:
+  toko:
+    name: toko (product-service, order-service, gateway)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: toko
+    env:
+      API_KEY: ci-test-key          # bukan rahasia: hanya untuk gateway dan test di mesin CI sementara
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefix product-service
+          npm ci --prefix order-service
+          npm ci --prefix gateway
+
+      - name: Start services
+        run: |
+          node product-service/product-service.js > product.log 2>&1 &
+          node order-service/order-service.js > order.log 2>&1 &
+          node gateway/gateway.js > gateway.log 2>&1 &
+
+      - name: Wait until services are ready
+        run: |
+          for url in http://localhost:3000/health http://localhost:3001/health http://localhost:8080/health; do
+            ok=0
+            for i in $(seq 1 30); do
+              if curl -sf "$url" > /dev/null; then ok=1; break; fi
+              sleep 1
+            done
+            [ "$ok" = 1 ] || { echo "Tidak siap: $url"; exit 1; }
+          done
+
+      - name: Run tests
+        run: npm test
+
+      - name: Show service logs
+        if: always()
+        run: |
+          for f in product order gateway; do echo "=== $f ==="; cat $f.log; done
+
+  proyek-kelompok:
+    name: proyek-kelompok (jadwal-service, booking-service, gateway)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: proyek-kelompok
+    env:
+      API_KEY: ci-test-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefix jadwal-service
+          npm ci --prefix booking-service
+          npm ci --prefix gateway
+
+      - name: Start services
+        run: |
+          node jadwal-service/server.js > jadwal.log 2>&1 &
+          node booking-service/server.js > booking.log 2>&1 &
+          node gateway/gateway.js > gateway.log 2>&1 &
+
+      - name: Wait until services are ready
+        run: |
+          for url in http://localhost:3000/health http://localhost:3001/health http://localhost:8080/health; do
+            ok=0
+            for i in $(seq 1 30); do
+              if curl -sf "$url" > /dev/null; then ok=1; break; fi
+              sleep 1
+            done
+            [ "$ok" = 1 ] || { echo "Tidak siap: $url"; exit 1; }
+          done
+
+      - name: Run tests
+        run: npm test
+
+      - name: Show service logs
+        if: always()
+        run: |
+          for f in jadwal booking gateway; do echo "=== $f ==="; cat $f.log; done

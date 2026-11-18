@@ -1,0 +1,16 @@
+{
+  "name": "proyek-kelompok-reservasi-kereta",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistem reservasi tiket kereta (Topik A) - Lab 08 API Gateway, Lab 12 pengujian otomatis dan monitoring",
+  "scripts": {
+    "install:all": "npm install --prefix gateway && npm install --prefix jadwal-service && npm install --prefix booking-service",
+    "start:all": "node scripts/start-all.js",
+    "test": "node --test tests/api.test.js",
+    "monitor": "node monitor.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "ISC"
+}
