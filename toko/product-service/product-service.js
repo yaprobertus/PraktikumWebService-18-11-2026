@@ -111,7 +111,7 @@ app.post('/products/:id/reserve', (req, res) => {
   const qty = (req.body || {}).qty;
   if (!p) return res.status(404).json({ error: 'Produk tidak ditemukan' });
   if (!Number.isInteger(qty) || qty < 1) return res.status(400).json({ error: 'qty tidak valid' });
-  if (p.stock < qty) return res.status(409).json({ error: 'Stok tidak cukup' });
+  if (p.stock < qty) return res.status(400).json({ error: 'Stok tidak cukup' });
   p.stock -= qty;
   res.json(p);
 });
